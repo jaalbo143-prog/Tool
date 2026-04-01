@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rusted Warfare Mod Builder</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background:#1e1e1e; color:white; }
+    input, select { margin:5px; padding:5px; }
+    .box { margin-bottom:15px; padding:10px; border:1px solid #444; }
+    button { padding:8px 12px; margin-top:10px; cursor:pointer; }
+    textarea { width:100%; height:200px; margin-top:10px; }
+  </style>
+</head>
+
+<body>
+
+<h2>Unit Builder (Skill Enabled)</h2>
+
+<div class="box">
+  <h3>Base Unit</h3>
+  <input id="name" placeholder="Unit Name"><br>
+  <input id="hp" placeholder="HP"><br>
+  <input id="price" placeholder="Price"><br>
+  <input id="damage" placeholder="Damage"><br>
+  <input id="range" placeholder="Range"><br>
+  <input id="speed" placeholder="Speed"><br>
+</div>
+
+<div class="box">
+  <label>
+    <input type="checkbox" id="enableSkill" onchange="toggleSkill()"> Enable Skill
+  </label>
+
+  <div id="skillBox" style="display:none;">
+    <h3>Skill Settings</h3>
+
+    <input id="skillName" placeholder="Skill Name"><br>
+
+    <select id="skillType" onchange="updateSkillFields()">
+      <option value="spawn">Spawn Unit</option>
+      <option value="transport">Transport</option>
+      <option value="build">Build</option>
+      <option value="passive">Passive</option>
+    </select><br>
+
+    <input id="cooldown" placeholder="Cooldown (seconds)"><br>
+
+    <div id="dynamicFields"></div>
+
+  </div>
+</div>
+
+<button onclick="generate()">Generate</button>
+<button onclick="copyText()">Copy</button>
+<button onclick="download()">Download .ini</button>
+
+<textarea id="output" placeholder="Output will appear here..."></textarea>
+
+<script>
+
+function toggleSkill(){
+  document.getElementById("skillBox").style.display =
+    document.getElementById("enableSkill").checked ? "block" : "none";
+}
+
+function updateSkillFields(){
+  const type = document.getElementById("skillType").value;
+  const box = document.getElementById("dynamicFields");
+
+  if(type === "spawn"){
+    box.innerHTML = `
+      <input id="spawnUnit" placeholder="Unit to Spawn"><br>
+      <input id="spawnCount" placeholder="Amount"><br>
+    `;
+  }
+  else if(type === "transport"){
+    box.innerHTML = `
+      <input id="capacity" placeholder="Transport Capacity"><br>
+    `;
+  }
+  else if(type === "build"){
+    box.innerHTML = `
+      <input id="buildList" placeholder="Build Options (comma separated)"><br>
+    `;
+  }
+  else{
+    box.innerHTML = `
+      <input id="sound" placeholder="Sound file (e.g rain.ogg)"><br>
+    `;
+  }
+}
+
+function generate(){
+
+  let name = document.getElementById("name").value;
+  let hp = document.getElementById("hp").value;
+  let price = document.getElementById("price").value;
+  let damage = document.getElementById("damage").value;
+  let range = document.getElementById("range").value;
+  let speed = document.getElementById("speed").value;
+
+  let output = `
+[core]
+name: ${name}
+maxHp: ${hp}
+price: ${price}
+
+[attack]
+damage: ${damage}
+range: ${range}
+
+[movement]
+moveSpeed: ${speed}
+`;
+
+  if(document.getElementById("enableSkill").checked){
+
+    let skillName = document.getElementById("skillName").value;
+    let type = document.getElementById("skillType").value;
+    let cooldown = document.getElementById("cooldown").value;
+
+    let skillBlock = `
+
+[hiddenAction_${skillName}]
+autoTrigger: false
+cooldown: ${cooldown}
+`;
+
+    if(type === "spawn"){
+      let unit = document.getElementById("spawnUnit").value;
+      let count = document.getElementById("spawnCount").value;
+      skillBlock += `spawnUnits: ${unit}*${count}`;
+    }
+
+    else if(type === "transport"){
+      let cap = document.getElementById("capacity").value;
+      skillBlock += `canTransportUnits: true\nmaxTransportingUnits: ${cap}`;
+    }
+
+    else if(type === "build"){
+      let list = document.getElementById("buildList").value;
+      skillBlock += `canBuild: true\nbuildOptions: ${list}`;
+    }
+
+    else{
+      let sound = document.getElementById("sound").value;
+      skillBlock += `autoTrigger: true\nplaySound: ${sound}`;
+    }
+
+    output += skillBlock;
+  }
+
+  document.getElementById("output").value = output;
+}
+
+function copyText(){
+  navigator.clipboard.writeText(document.getElementById("output").value);
+}
+
+function download(){
+  let blob = new Blob([document.getElementById("output").value], {type:"text/plain"});
+  let a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "unit.ini";
+  a.click();
+}
+
+</script>
+
+</body>
+</html>
